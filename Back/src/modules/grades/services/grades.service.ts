@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
+import { PrismaClient } from '@prisma/client';
 import { CalificacionBuilder } from '../patterns/builder/calificacion.builder';
 
 @Injectable()
