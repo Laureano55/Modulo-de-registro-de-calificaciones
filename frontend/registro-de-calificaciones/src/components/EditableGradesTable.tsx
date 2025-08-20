@@ -440,11 +440,11 @@ const data = {
   periodo: "2025-1",
   cursos: [
     {
-      id_curso: 10,
+      id_curso: 1,
       nm_curso: "Cálculo Diferencial",
     },
     {
-      id_curso: 11,
+      id_curso: 2,
       nm_curso: "Programación I",
     },
     {
@@ -475,6 +475,41 @@ const data = {
 interface curso {
   id_curso: number;
   nm_curso: string;
+}
+
+interface OldFormat {
+  periodo: string;
+  curso: string;
+  grades: {
+    studentId: number;
+    studentName: string;
+    grades: { [key: string]: number | null };
+  }[];
+}
+
+interface NewFormat {
+  curso: number;
+  calificaciones: {
+    fk_estudiante: number;
+    cortes: { corte: number; calificacion: number | null }[];
+  }[];
+}
+
+class GradesAdapter {
+  constructor(private oldData: OldFormat) {}
+
+  public toNewFormat(): NewFormat {
+    return {
+      curso: this.oldData.curso,
+      calificaciones: this.oldData.grades.map((student) => ({
+        fk_estudiante: student.studentId,
+        cortes: [1, 2, 3, 4].map((corte) => ({
+          fk_corte: corte,
+          calificacion: student.grades[`corte${corte}`] ?? null,
+        })),
+      })),
+    };
+  }
 }
 
 export function EditableGradesTable() {
@@ -716,23 +751,24 @@ export function EditableGradesTable() {
     }, [] as any[]);
 
     // envío al backend
-    try {
-      console.log("Enviando calificaciones al backend:", {
-        periodo: selectedPeriod,
-        curso: selectedCourse,
-        grades: gradesToSave,
-      });
 
+    const oldJson: OldFormat = {
+      periodo: selectedPeriod,
+      curso: availableCourses.find((course) => course.nm_curso === selectedCourse)?.id_curso,
+      grades: gradesToSave,
+    };
+
+    const adapter = new GradesAdapter(oldJson);
+    const newJson = adapter.toNewFormat();
+    console.log("Nuevo formato de calificaciones:", newJson);
+
+    try {
       const response = await fetch("http://localhost:3000/grades/batch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          periodo: selectedPeriod,
-          curso: selectedCourse,
-          grades: gradesToSave,
-        }),
+        body: JSON.stringify(newJson),
       });
 
       if (!response.ok) {
@@ -760,10 +796,6 @@ export function EditableGradesTable() {
       );
     }, 0);
   };
-
-  // const availableSubjects = Object.keys(
-  //   studentsDataByPeriod[selectedPeriod as keyof typeof studentsDataByPeriod]
-  // );
 
   return (
     <Card className="w-full">
