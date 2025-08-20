@@ -8,7 +8,7 @@ datasource db {
 }
 
 model Calificaciones {
-  id_calificacion Int      @id @map("id_calificacion")
+  id_calificacion Int      @id @default(autoincrement()) @map("id_calificacion")
   calificacion    Float    @map("calificacion")
   dt_registro     DateTime @map("dt_registro")
   fk_inscripcion  Int      @map("fk_inscripcion")
@@ -61,7 +61,7 @@ model Estudiantes {
 }
 
 model Rel_Inscripciones {
-  id_inscripcion Int @id @map("id_inscripcion")
+  id_inscripcion Int @id @default(autoincrement()) @map("id_inscripcion")
   fk_estudiante  Int @map("fk_estudiante")
   fk_curso       Int @map("fk_curso")
 
