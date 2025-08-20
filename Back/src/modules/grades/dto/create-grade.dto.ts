@@ -4,6 +4,6 @@ export class CreateGradesDto {
   curso: number;
   calificaciones: {
     fk_estudiante: number;
-    cortes: { fk_corte: number; calificacion: number | null }[];
+    cortes: { numero_corte: number; calificacion: number | null }[];
   }[];
 }
