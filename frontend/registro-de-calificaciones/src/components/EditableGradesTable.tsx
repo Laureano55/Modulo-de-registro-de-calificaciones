@@ -532,24 +532,41 @@ export function EditableGradesTable() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const loadCourses = async () => {
+  const loadCourses = async () => {
+    try {
       const periodo = Number(selectedPeriod);
-      // cargar cursos y auto-seleccionar el primero
-      const availableCourses: curso[] = data.cursos;
+      const response = await fetch(`http://localhost:3000/grades/cursos?periodo=${periodo}`);
+      if (!response.ok) {
+        throw new Error("Error al cargar cursos");
+      }
+
+      const data = await response.json();
+      const availableCourses: curso[] = data.cursos; // asegúrate que la respuesta tenga esta estructura
+      console.log("Cursos disponibles:", availableCourses);
       setAvailableCourses(availableCourses);
-      const firstCourse = availableCourses[0];
-      setSelectedCourse(firstCourse.nm_curso);
-    };
-    loadCourses();
-  }, [selectedPeriod]);
+
+      if (availableCourses.length > 0) {
+        const firstCourse = availableCourses[0];
+        setSelectedCourse(firstCourse.nm_curso);
+      } else {
+        setSelectedCourse(""); // limpiar si no hay cursos
+      }
+    } catch (error) {
+      console.error("Error cargando cursos:", error);
+    }
+  };
+
+  loadCourses();
+}, [selectedPeriod]);
+
 
   const handlePeriodChange = (periodKey: string) => {
     setSelectedPeriod(periodKey);
-    const newData =
-      studentsDataByPeriod[periodKey as keyof typeof studentsDataByPeriod][
-        firstSubject
-      ];
-    setStudentsData(newData?.students || []);
+    // const newData =
+    //   studentsDataByPeriod[periodKey as keyof typeof studentsDataByPeriod][
+    //     firstSubject
+    //   ];
+    // setStudentsData(newData?.students || []);
     setEditingCell(null);
   };
 
