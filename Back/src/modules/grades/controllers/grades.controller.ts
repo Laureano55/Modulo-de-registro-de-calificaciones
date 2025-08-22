@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { GradesService } from '../services/grades.service';
 import { CreateGradesDto } from '../dto/create-grade.dto';
 
@@ -10,4 +10,16 @@ export class GradesController {
   async createGradesBatch(@Body() createGradesDto: CreateGradesDto) {
     return this.gradesService.createGradesBatch(createGradesDto);
   }
+
+  // Nuevo endpoint: obtener cursos por período
+  @Get('cursos')
+  async getCoursesByPeriodo(@Query('periodo') periodo: number) {
+    return this.gradesService.getCoursesByPeriodo(periodo);
+  }
+
+  @Get('estudiantes')
+  async getStudentsByCourse(@Query('id_curso') id_curso: number) {
+    return this.gradesService.getStudentsByCourse(id_curso);
+  }
+
 }
