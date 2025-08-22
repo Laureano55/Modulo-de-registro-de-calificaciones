@@ -472,6 +472,33 @@ const studentsDataByPeriod = {
 //     ]
 //   }
 
+type StudentMapped = {
+  id: number;
+  student: string;
+  corte1: number | null;
+  corte2: number | null;
+  corte3: number | null;
+  corte4: number | null;
+};
+
+function mapStudents(data: any): StudentMapped[] {
+  return data.estudiantes.map((est) => {
+    const cortes: Record<number, number | null> = {};
+    est.calificaciones.forEach((c) => {
+      cortes[c.numero_corte] = c.calificacion;
+    });
+
+    return {
+      id: est.id_estudiante,
+      student: `${est.nombre} ${est.apellido}`,
+      corte1: cortes[1] ?? null,
+      corte2: cortes[2] ?? null,
+      corte3: cortes[3] ?? null,
+      corte4: cortes[4] ?? null,
+    };
+  });
+}
+
 interface curso {
   id_curso: number;
   nm_curso: string;
@@ -514,69 +541,105 @@ class GradesAdapter {
 
 export function EditableGradesTable() {
   const [selectedPeriod, setSelectedPeriod] = useState("202510");
-  const [selectedCourse, setSelectedCourse] = useState(
-    Object.keys(studentsDataByPeriod["202510"])[0]
-  );
+  const [selectedCourse, setSelectedCourse] = useState("");
   const [availableCourses, setAvailableCourses] = useState<curso[]>([]);
+  const [currentCourseData, setCurrentCourseData] = useState({
+    cortes: 4,
+    percentages: [25, 25, 25, 25],
+  });
 
-  const currentSubjectData =
-    studentsDataByPeriod[selectedPeriod as keyof typeof studentsDataByPeriod][
-      selectedCourse
-    ];
-  const [studentsData, setStudentsData] = useState(
-    currentSubjectData?.students || []
-  );
+  const [studentsData, setStudentsData] = useState<StudentMapped[]>([]);
   const [editingCell, setEditingCell] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-  const loadCourses = async () => {
-    try {
-      const periodo = Number(selectedPeriod);
-      const response = await fetch(`http://localhost:3000/grades/cursos?periodo=${periodo}`);
-      if (!response.ok) {
-        throw new Error("Error al cargar cursos");
+    const loadCourses = async () => {
+      try {
+        const periodo = Number(selectedPeriod);
+        const response = await fetch(
+          `http://localhost:3000/grades/cursos?periodo=${periodo}`
+        );
+        if (!response.ok) {
+          throw new Error("Error al cargar cursos");
+        }
+
+        const data = await response.json();
+        const availableCourses: curso[] = data.cursos; // asegúrate que la respuesta tenga esta estructura
+        // console.log("Cursos disponibles:", availableCourses);
+        setAvailableCourses(availableCourses);
+
+        if (availableCourses.length > 0) {
+          const firstCourse = availableCourses[0];
+          setSelectedCourse(firstCourse.nm_curso);
+        } else {
+          setSelectedCourse(""); // limpiar si no hay cursos
+        }
+      } catch (error) {
+        console.error("Error cargando cursos:", error);
       }
+    };
 
-      const data = await response.json();
-      const availableCourses: curso[] = data.cursos; // asegúrate que la respuesta tenga esta estructura
-      console.log("Cursos disponibles:", availableCourses);
-      setAvailableCourses(availableCourses);
+    loadCourses();
+  }, [selectedPeriod]);
 
-      if (availableCourses.length > 0) {
-        const firstCourse = availableCourses[0];
-        setSelectedCourse(firstCourse.nm_curso);
-      } else {
-        setSelectedCourse(""); // limpiar si no hay cursos
+  useEffect(() => {
+    const loadStudentsAndGrades = async () => {
+      try {
+        if (!selectedCourse) return; // evitar fetch si no hay curso seleccionado
+
+        // buscar el curso completo en base al nombre
+        const selected = availableCourses.find(
+          (c) => c.nm_curso === selectedCourse
+        );
+
+        if (!selected) {
+          console.warn("No se encontró el curso seleccionado");
+          return;
+        }
+
+        const response = await fetch(
+          `http://localhost:3000/grades/estudiantes?id_curso=${selected.id_curso}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Error al cargar estudiantes y notas");
+        }
+
+        const data = await response.json();
+
+        console.log("Estudiantes y notas cargados:", data);
+        const mapped = mapStudents(data);
+        console.log("Datos mapeados:", mapped);
+        setStudentsData(mapped);
+        const cortes =
+          data.estudiantes && data.estudiantes.length > 0
+            ? data.estudiantes[0].calificaciones.length
+            : 0;
+        const percentages =
+          data.estudiantes && data.estudiantes.length > 0
+            ? data.estudiantes[0].calificaciones.map((c) => c.porcentaje)
+            : [];
+        setCurrentCourseData({
+          cortes,
+          percentages,
+        });
+      } catch (error) {
+        console.error("Error cargando estudiantes y notas:", error);
       }
-    } catch (error) {
-      console.error("Error cargando cursos:", error);
-    }
-  };
+    };
 
-  loadCourses();
-}, [selectedPeriod]);
-
+    loadStudentsAndGrades();
+  }, [selectedCourse, availableCourses]);
 
   const handlePeriodChange = (periodKey: string) => {
     setSelectedPeriod(periodKey);
-    // const newData =
-    //   studentsDataByPeriod[periodKey as keyof typeof studentsDataByPeriod][
-    //     firstSubject
-    //   ];
-    // setStudentsData(newData?.students || []);
     setEditingCell(null);
   };
 
-  const handleSubjectChange = (subjectKey: string) => {
-    setSelectedCourse(subjectKey);
-    const newData =
-      studentsDataByPeriod[selectedPeriod as keyof typeof studentsDataByPeriod][
-        subjectKey
-      ];
-    setStudentsData(newData?.students || []);
+  const handleCourseChange = (courseKey: string) => {
+    setSelectedCourse(courseKey);
     setEditingCell(null);
   };
 
@@ -706,8 +769,8 @@ export function EditableGradesTable() {
   };
 
   const calculateDefinitiva = (student: any) => {
-    const numCortes = currentSubjectData?.cortes || 4;
-    const percentages = currentSubjectData?.percentages || [];
+    const numCortes = currentCourseData?.cortes || 4;
+    const percentages = currentCourseData?.percentages || [];
     let definitiva = 0;
 
     for (let i = 1; i <= numCortes; i++) {
@@ -731,8 +794,8 @@ export function EditableGradesTable() {
   };
 
   const getDynamicCortes = () => {
-    const numCortes = currentSubjectData?.cortes || 4;
-    const percentages = currentSubjectData?.percentages || [];
+    const numCortes = currentCourseData?.cortes || 4;
+    const percentages = currentCourseData?.percentages || [];
 
     return Array.from({ length: numCortes }, (_, i) => ({
       key: `corte${i + 1}`,
@@ -771,7 +834,9 @@ export function EditableGradesTable() {
 
     const oldJson: OldFormat = {
       periodo: selectedPeriod,
-      curso: availableCourses.find((course) => course.nm_curso === selectedCourse)?.id_curso,
+      curso: availableCourses.find(
+        (course) => course.nm_curso === selectedCourse
+      )?.id_curso,
       grades: gradesToSave,
     };
 
@@ -843,10 +908,7 @@ export function EditableGradesTable() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium">Materia:</span>
-              <Select
-                value={selectedCourse}
-                onValueChange={handleSubjectChange}
-              >
+              <Select value={selectedCourse} onValueChange={handleCourseChange}>
                 <SelectTrigger className="w-48">
                   <SelectValue />
                 </SelectTrigger>
