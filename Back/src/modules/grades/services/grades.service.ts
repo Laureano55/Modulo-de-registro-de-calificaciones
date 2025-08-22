@@ -11,6 +11,22 @@ export class GradesService {
     private readonly calificacionBuilder: CalificacionBuilder,
   ) {}
 
+  async getCursosByPeriodo(periodo: number) {
+    const cursos = await this.prisma.cursos.findMany({
+      where: { periodo_academico: periodo },
+      select: {
+        id_curso: true,
+        nm_curso: true,
+        periodo_academico: true,
+      },
+    });
+
+    return {
+      periodo,
+      cursos,
+    };
+  }
+
   async createGradesBatch(dto: CreateGradesDto) {
     const { curso, calificaciones } = dto;
     const results: any[] = [];
@@ -70,6 +86,9 @@ export class GradesService {
     return results;
   }
 
+  
+
+
   // 🔹 Nuevo método: obtener calificaciones por curso
   async getGradesByCourse(id_curso: number) {
     // Obtener cortes del curso
@@ -119,11 +138,87 @@ export class GradesService {
     return respuesta;
   }
 
-  async getCoursesByPeriodo(periodo: number) {
-    return;
-  }
+  
 
-  async getStudentsByCourse(id_curso: number) {
-    return;
-  }
+ async getCoursesByPeriodo(periodo: number) {
+
+  periodo = Number(periodo);
+  const cursos = await this.prisma.cursos.findMany({
+    where: { periodo_academico: periodo },
+    select: {
+      id_curso: true,
+      nm_curso: true,
+    },
+  });
+
+  return {
+    periodo,
+    cursos,
+  };
+}
+
+
+
+
+
+  async getStudentsByCourse(id_curso) {
+  // Obtener cortes del curso (con %)
+
+  id_curso = Number(id_curso);
+  const cortes = await this.prisma.cortes.findMany({
+    where: { fk_curso: id_curso },
+    orderBy: { numero_corte: 'asc' },
+    select: { id_corte: true, numero_corte: true, porcentaje: true },
+  });
+
+  // Obtener inscripciones con datos del estudiante
+  const inscripciones = await this.prisma.rel_Inscripciones.findMany({
+    where: { fk_curso: id_curso },
+    select: {
+      id_inscripcion: true,
+      estudiante: {
+        select: {
+          id_estudiante: true,
+          nombre: true,
+          apellido: true,
+        },
+      },
+    },
+  });
+
+  // Obtener calificaciones existentes
+  const calificaciones = await this.prisma.calificaciones.findMany({
+    where: { corte: { fk_curso: id_curso } },
+    select: {
+      calificacion: true,
+      fk_inscripcion: true,
+      corte: { select: { id_corte: true, numero_corte: true } },
+    },
+  });
+
+  // Respuesta
+  const respuesta = {
+    id_curso,
+    estudiantes: inscripciones.map((i) => ({
+      id_estudiante: i.estudiante.id_estudiante,
+      nombre: i.estudiante.nombre,
+      apellido: i.estudiante.apellido,
+      calificaciones: cortes.map((c) => {
+        const calif = calificaciones.find(
+          (cal) =>
+            cal.corte.id_corte === c.id_corte &&
+            cal.fk_inscripcion === i.id_inscripcion
+        );
+        return {
+          numero_corte: c.numero_corte,
+          porcentaje: c.porcentaje,
+          calificacion: calif ? calif.calificacion : null,
+        };
+      }),
+    })),
+  };
+
+  return respuesta;
+}
+
 }
