@@ -12,3 +12,40 @@ Incluye un backend desarrollado en **NestJS** con conexión a **Supabase** como 
 - Validación de rangos de notas (0.0 – 5.0).  
 - Cálculo automático de definitivas.  
 - Botón de guardado habilitado/deshabilitado según contexto.
+
+Link de prueba del proyecto: https://youtu.be/9gMISGpAwaA
+
+Este proyecto está compuesto por dos partes principales:
+
+- **Backend**: API construida con **NestJS** y **Prisma** para la gestión de cursos, estudiantes y calificaciones.
+- **Frontend**: Aplicación en **React** que consume la API y muestra la información al usuario.
+- **Base de datos**: Prisma y supabase.
+
+---
+
+## 📦 Requisitos previos
+
+Antes de iniciar, asegúrate de tener instalado en tu máquina:
+
+- [Node.js](https://nodejs.org/) (versión LTS recomendada)
+- [npm](https://www.npmjs.com/) o [yarn](https://yarnpkg.com/)
+- [PostgreSQL](https://www.postgresql.org/) (u otra base de datos compatible con Prisma)
+
+---
+
+## ⚙️ Instrucciones
+
+1. Inicia el Backend:
+   ```bash
+   cd back
+   npm install
+   npm start dev
+
+2. Inicia el Frontend:
+   ```bash
+   cd frontend
+   cd registro-de-calificaciones
+   npm install
+   npm run dev
+
+3. Abre el link que muestra en consola
