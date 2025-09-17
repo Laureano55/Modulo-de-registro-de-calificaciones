@@ -33,6 +33,11 @@ Antes de iniciar, asegúrate de tener instalado en tu máquina:
 
 ---
 
+## Diagrama ER
+
+<img width="990" height="400" alt="image" src="https://github.com/user-attachments/assets/93c4070b-1d1f-4122-a00f-112ccf167d6f" />
+
+
 ## ⚙️ Instrucciones
 
 1. Inicia el Backend:
